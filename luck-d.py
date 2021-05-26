@@ -5,47 +5,52 @@ import json
 import re
 import pickle
 
+
+HOME_PATH = '<YOUR_PATH>'
+DRIVER_PATH = '<YOUR_PATH>/chromedriver'
 options = webdriver.ChromeOptions()
 options.add_argument("--headless")
 options.add_argument("--no-sandbox")
 options.add_argument('--disable-dev-shm-usage')
 options.add_argument("--remote-debugging-port=9222")
-
-homePath = '<YOUR_PATH>'
-driverPath = '<YOUR_PATH>/chromedriver'
-driver = webdriver.Chrome(driverPath, options=options)
+driver = webdriver.Chrome(DRIVER_PATH, options = options)
 driver.implicitly_wait(1)
 
 sendKey = []
 
-def luckeydraw():
-    url = 'https://www.luck-d.com'
-    driver.get(url)
+def process():
+    URL = 'https://www.luck-d.com'
+    driver.get(URL)
 
-    # 응모마감예정
-    div = driver.find_elements_by_css_selector('section > div.gallery')
-    gallery = div[len(div)-1]
+    # '응모 마감 예정' div 조회
+    divs = driver.find_elements_by_css_selector('section > div.gallery')
+    div = divs[len(divs)-1]
 
-    # 내용가져오기
-    a = gallery.find_elements_by_css_selector('div.agent_site_info > h5 > a')
-    p = gallery.find_elements_by_css_selector('div.agent_site_info > p')
-
-    print(len(p))
+    # p,a 태그 조회
+    a = div.find_elements_by_css_selector('div.agent_site_info > h5 > a')
+    p = div.find_elements_by_css_selector('div.agent_site_info > p')
+    # print(len(p))
 
     for idx in range(len(p)):
-        store = a[idx].get_attribute('text')
-        endDate = getEndDate(p[idx].text)
-        pre30mEndDate = getPre30EndDate(endDate)
-        href = a[idx].get_attribute('href')
-        key = store + ' ' + href.split('/')[5] + ' ' + endDate
-        now = datetime.now().strftime('%m%d%H%M')
+        # 크롤링 정보
+        store = a[idx].get_attribute('text')                    # 판매처
+        endDate = getEndDate(p[idx].text)                       # 응모 마감 시간
+        pre30mEndDate = getPre30EndDate(endDate)                # 응모 마감 30분전 시간
+        href = a[idx].get_attribute('href')                     # 링크주소
+        key = store + ' ' + href.split('/')[5] + ' ' + endDate  # 중복 발송 키 생성(판매처 + 상품명 + 마감시간)
+        now = datetime.now().strftime('%m%d%H%M')               # 현재 시간
 
+        # 응모 마감 30분전 확인
         if pre30mEndDate <= now:
+            # 중복 발송 제거
             if key not in sendKey:
+                # 슬랙 발송
                 response = sendSlack([
                     key,
                     href,
                 ])
+
+                # 중복 방지 key 추가
                 if response.status_code == 200:
                     appendSendKey(key)
 
@@ -62,9 +67,6 @@ def getEndDate(str):
 def getPre30EndDate(strEndDate):
     pre30mEndDate = (datetime.strptime(strEndDate, '%m%d%H%M') - timedelta(minutes=30)).strftime('%m%d%H%M')
     return pre30mEndDate
-
-def appendSendKey(key):
-    sendKey.append(key)
 
 def sendSlack(data):
     printTimeF("sned Slack!!")
@@ -91,13 +93,16 @@ def sendSlack(data):
 
 def readSendKey():
     global sendKey
-    with open(homePath + "/sendKey.txt", 'rb') as lf:
+    with open(HOME_PATH + "/sendKey.txt", 'rb') as lf:
         sendKey = pickle.load(lf)
     print('read sendKey data = ')
     print(sendKey)
 
+def appendSendKey(key):
+    sendKey.append(key)
+
 def writeSendKey(list):
-    with open(homePath + "/sendKey.txt", 'wb') as lf:
+    with open(HOME_PATH + "/sendKey.txt", 'wb') as lf:
         pickle.dump(list, lf)
 
 def removeSendKey():
@@ -120,11 +125,11 @@ def printTimeF(text):
 def execute():
     printTimeF('start crawling!!')
     readSendKey()
-    luckeydraw()
+    process()
     removeSendKey()
     printTimeF('done crawling!!')
     print('')
     
-## Main
+# Main
 if __name__ == "__main__":
     execute()
