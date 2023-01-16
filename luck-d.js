@@ -81,7 +81,7 @@ const _orderBySellerDesc = async (arr) => {
 
 const sendSlack = async (dataList) => {
 	await _orderBySellerDesc(dataList);
-	let text = `${dataList[0].seller} ${dataList.length > 1 ? `외 ${dataList.length}건` : ``} 마감 30분전\n`;
+	let text = `[${_getNowDate()}] ${dataList[0].seller} ${dataList.length > 1 ? `외 ${dataList.length}건` : ``} 마감 30분전\n`;
 	dataList.forEach(element => {
 		text += `${element.link}\n`;
 	});
