@@ -5,8 +5,7 @@ import dateformat from 'dateformat';
 import cron from 'node-cron';
 
 const URL = 'https://www.luck-d.com';
-const SLACK_TOKEN = 'xoxb-2063683334582-2070634935618-cZWLaR18eEGF7yI4ys9vSU4B';
-const SLACK_CHANNEL = '#freitag-noti';
+const SLACK_TOKEN = 'T021VL39UH4/B04KS8KG3LG/7b4ulVhX2OpUrYYBhplOqSKf';
 const KEY_JSON = 'keys.json';
 let KEYS = [];
 
@@ -88,12 +87,11 @@ const sendSlack = async (dataList) => {
 	});
 	text += `---------------------------------------------`;
 
-	const result = await axios.post('https://slack.com/api/chat.postMessage', {
-		channel: SLACK_CHANNEL,
+	const result = await axios.post(`https://hooks.slack.com/services/${SLACK_TOKEN}`, {
         text: text
 	}, {
 		headers: {
-			Authorization: 'Bearer ' + SLACK_TOKEN
+			'Content-type': 'application/json'
 		}
 	});
 
@@ -143,7 +141,7 @@ const process = async () => {
 	await updateKeys();
 }
 
-const task = cron.schedule('* * * * *', async () => {
+const task = cron.schedule('*/5 * * * *', async () => {
 	console.log(`[${_getNowDate()}] cronjob 실행`);
 	await process();
 	console.log(`[${_getNowDate()}] cronjob 종료`);
