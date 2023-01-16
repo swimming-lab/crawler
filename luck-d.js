@@ -126,7 +126,7 @@ const updateKeys = async () => {
 	writeKeys();
 }
 
-const existKeys = async (key) => {
+const existKeys = (key) => {
 	return KEYS.findIndex(data => data.key === key) > -1;
 }
 
@@ -141,7 +141,7 @@ const process = async () => {
 	await updateKeys();
 }
 
-const task = cron.schedule('*/5 * * * *', async () => {
+const task = cron.schedule('* * * * *', async () => {
 	console.log(`[${_getNowDate()}] cronjob 실행`);
 	await process();
 	console.log(`[${_getNowDate()}] cronjob 종료`);
