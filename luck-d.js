@@ -1,3 +1,5 @@
+// import dotenv from 'dotenv';
+// dotenv.config();
 import axios from 'axios';
 import { load } from 'cheerio';
 import fs from 'fs/promises';
@@ -9,6 +11,8 @@ const SLACK_TOKEN = 'T021VL39UH4/B04KS8KG3LG/7b4ulVhX2OpUrYYBhplOqSKf';
 const KEY_JSON = 'keys.json';
 let KEYS = [];
 
+// console.log(process.env.SLACK_TOKEN);
+
 const _parseHTML = async (url) => {
 	try {
 		return load((await axios.get(url)).data);
@@ -17,10 +21,10 @@ const _parseHTML = async (url) => {
 	}
 }
 
-// const _getProductName = async (url) => {
-// 	const $ = await _parseHTML(url);
-// 	return $('.page_title').text();	
-// }
+const _getProductName = async (url) => {
+	const $ = await _parseHTML(url);
+	return $('.page_title').text();	
+}
 
 const _getEndDate = (list) => {
 	list.pop();	// '마감' 텍스트 제거
@@ -49,8 +53,8 @@ const crawling = async () => {
 
 	const result = [];
 	console.log(`크롤링: ${galleryCellLayer.length}`);
-	galleryCellLayer.each((idx, node) => {
-		// console.log(`크롤링: ${idx} ${node}`);
+
+	const promises = galleryCellLayer.map(async (index, node) => {
 		const seller = $(node).find('.agent_site_info').find('a').text();
 		const href = $(node).find('.agent_site_info').find('a').attr('href');
 		const productId = href.split('/')[3];
@@ -58,21 +62,20 @@ const crawling = async () => {
 		const pre30m = _getPre30mEndDate(endDate);
 		const nowDate = _getNowDate();
 		const key = `${seller}_${productId}_${endDate}`;
-		// const productName = await _getProductName(URL + href);
 
 		if (!existKeys(key) && nowDate >= pre30m) {
-			// const productName = await _getProductName(URL + href);
-
+			const productName = await _getProductName(URL + href);
 			result.push({
 				key: key,
 				seller: seller,
 				link: URL + href,
 				productId: productId,
-				// productName: productName,
+				productName: productName,
 				endDate: endDate,
 			});
 		}
 	});
+	await Promise.all(promises);
 
 	return result;
 }
@@ -93,9 +96,9 @@ const sendSlack = async (dataList) => {
 	await _orderBySellerDesc(dataList);
 	let text = `[${_getNowDate()}] ${dataList[0].seller} ${dataList.length > 1 ? `외 ${dataList.length-1}건` : ``} 마감 30분전\n`;
 	dataList.forEach(element => {
-		text += `${element.link}\n`;
+		text += `- ${element.seller}: ${element.productName}\n`;
 	});
-	text += `---------------------------------------------`;
+	text += `${dataList[0].link}\n`;
 
 	const result = await axios.post(`https://hooks.slack.com/services/${SLACK_TOKEN}`, {
         text: text
@@ -143,6 +146,7 @@ const process = async () => {
 	const resultList = await crawling();
 	console.log(`마감 30분전: ${resultList.length}`);
 	if (resultList.length > 0) {
+
 		const result = await sendSlack(resultList);
 		if (result) await writeKeys(resultList);
 	}
