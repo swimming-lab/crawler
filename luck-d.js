@@ -17,6 +17,11 @@ const _parseHTML = async (url) => {
 	}
 }
 
+// const _getProductName = async (url) => {
+// 	const $ = await _parseHTML(url);
+// 	return $('.page_title').text();	
+// }
+
 const _getEndDate = (list) => {
 	list.pop();	// '마감' 텍스트 제거
 	if (list.length == 2) list.push('2359'); // 00시00분에 끝나는 시간은 23시59분으로 고정
@@ -45,6 +50,7 @@ const crawling = async () => {
 	const result = [];
 	console.log(`크롤링: ${galleryCellLayer.length}`);
 	galleryCellLayer.each((idx, node) => {
+		// console.log(`크롤링: ${idx} ${node}`);
 		const seller = $(node).find('.agent_site_info').find('a').text();
 		const href = $(node).find('.agent_site_info').find('a').attr('href');
 		const productId = href.split('/')[3];
@@ -52,13 +58,17 @@ const crawling = async () => {
 		const pre30m = _getPre30mEndDate(endDate);
 		const nowDate = _getNowDate();
 		const key = `${seller}_${productId}_${endDate}`;
+		// const productName = await _getProductName(URL + href);
 
 		if (!existKeys(key) && nowDate >= pre30m) {
+			// const productName = await _getProductName(URL + href);
+
 			result.push({
 				key: key,
 				seller: seller,
 				link: URL + href,
 				productId: productId,
+				// productName: productName,
 				endDate: endDate,
 			});
 		}
@@ -81,7 +91,7 @@ const _orderBySellerDesc = async (arr) => {
 
 const sendSlack = async (dataList) => {
 	await _orderBySellerDesc(dataList);
-	let text = `[${_getNowDate()}] ${dataList[0].seller} ${dataList.length > 1 ? `외 ${dataList.length}건` : ``} 마감 30분전\n`;
+	let text = `[${_getNowDate()}] ${dataList[0].seller} ${dataList.length > 1 ? `외 ${dataList.length-1}건` : ``} 마감 30분전\n`;
 	dataList.forEach(element => {
 		text += `${element.link}\n`;
 	});
@@ -120,9 +130,7 @@ const writeKeys = async (dataList = []) => {
 
 const updateKeys = async () => {
 	const nowDate = _getNowDate();
-	KEYS = KEYS.filter((element) => {
-		nowDate < element.endDate
-	});
+	KEYS = KEYS.filter(element => element.endDate >= nowDate);
 	writeKeys();
 }
 
@@ -140,7 +148,7 @@ const process = async () => {
 	}
 	await updateKeys();
 }
-
+// await process();
 const task = cron.schedule('* * * * *', async () => {
 	console.log(`[${_getNowDate()}] cronjob 실행`);
 	await process();
