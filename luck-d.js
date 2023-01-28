@@ -21,10 +21,10 @@ const _parseHTML = async (url) => {
 	}
 }
 
-const _getProductName = async (url) => {
-	const $ = await _parseHTML(url);
-	return $('.page_title').text();	
-}
+// const _getProductName = async (url) => {
+// 	const $ = await _parseHTML(url);
+// 	return $('.page_title').text();	
+// }
 
 const _getEndDate = (list) => {
 	list.pop();	// '마감' 텍스트 제거
@@ -47,24 +47,23 @@ const _getNowDate = () => {
 
 const crawling = async () => {
 	const $ = await _parseHTML(URL);
-
-	const galleryHorizontal = $('.gallery_horizontal')[2];
-	const galleryCellLayer = $(galleryHorizontal).find('.gallery_cell_layer');
+	const releaseCards = $('.raffle_layer .release_card_layer').find('.release_card');
 
 	const result = [];
-	console.log(`크롤링: ${galleryCellLayer.length}`);
+	console.log(`크롤링: ${releaseCards.length}`);
 
-	const promises = galleryCellLayer.map(async (index, node) => {
-		const seller = $(node).find('.agent_site_info').find('a').text();
-		const href = $(node).find('.agent_site_info').find('a').attr('href');
+	const promises = releaseCards.map(async (index, node) => {
+		const seller = $(node).find('.agentsite_name .underline').text();
+		const productName = $(node).find('.product_name .text').text();
+		const href = $(node).attr('onclick').split('=')[1].replaceAll('\'', '');
 		const productId = href.split('/')[3];
-		const endDate = _getEndDate($(node).find('.agent_site_info').find('p').text().split('\n')[2].trim().split(' '));
+		const endDate = _getEndDate($(node).find('.release_time .text').text().split('\n')[2].trim().split(' '));
 		const pre30m = _getPre30mEndDate(endDate);
 		const nowDate = _getNowDate();
 		const key = `${seller}_${productId}_${endDate}`;
 
 		if (!existKeys(key) && nowDate >= pre30m) {
-			const productName = await _getProductName(URL + href);
+			// const productName = await _getProductName(URL + href);
 			result.push({
 				key: key,
 				seller: seller,
@@ -146,7 +145,6 @@ const process = async () => {
 	const resultList = await crawling();
 	console.log(`마감 30분전: ${resultList.length}`);
 	if (resultList.length > 0) {
-
 		const result = await sendSlack(resultList);
 		if (result) await writeKeys(resultList);
 	}
