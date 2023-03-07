@@ -47,15 +47,15 @@ const _getNowDate = () => {
 
 const crawling = async () => {
 	const $ = await _parseHTML(URL);
-	const releaseCards = $('.raffle_layer .release_card_layer').find('.release_card');
+	const releaseCards = $('.release_agentsite_layer .raffle_layer').find('.release_card');
 
 	const result = [];
 	console.log(`크롤링: ${releaseCards.length}`);
 
 	const promises = releaseCards.map(async (index, node) => {
-		const seller = $(node).find('.agentsite_name .underline').text();
+		const seller = $(node).find('.agentsite_name').text();
 		const productName = $(node).find('.product_name .text').text();
-		const href = $(node).attr('onclick').split('=')[1].replaceAll('\'', '');
+		const href = $(node).find('.release_card_inner').attr('onclick').split('=')[1].replaceAll('\'', '');
 		const productId = href.split('/')[3];
 		const endDate = _getEndDate($(node).find('.release_time .text').text().split('\n')[2].trim().split(' '));
 		const pre30m = _getPre30mEndDate(endDate);
