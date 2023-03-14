@@ -54,7 +54,7 @@ const crawling = async () => {
 
 	const promises = releaseCards.map(async (index, node) => {
 		const seller = $(node).find('.agentsite_name').text();
-		const productName = $(node).find('.product_name .text').text();
+		const productName = $(node).find('.release_product_name .text').text();
 		const href = $(node).find('.release_card_inner').attr('onclick').split('=')[1].replaceAll('\'', '');
 		const productId = href.split('/')[3];
 		const endDate = _getEndDate($(node).find('.release_time .text').text().split('\n')[2].trim().split(' '));
